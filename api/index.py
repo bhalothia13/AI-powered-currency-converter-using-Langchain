@@ -1,3 +1,5 @@
+import sys
+sys.path.append(".")
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
