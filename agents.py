@@ -7,20 +7,32 @@ from langchain.agents import create_agent
 from tools import currency_converter
 
 
-# Load environment variables
+# ==========================================
+# LOAD ENVIRONMENT VARIABLES
+# ==========================================
+
 load_dotenv()
 
-
-# Get Hugging Face API key
-HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+HF_TOKEN = (
+    os.getenv("HF_TOKEN")
+    or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+)
 
 if not HF_TOKEN:
     raise ValueError(
-        "HUGGINGFACEHUB_API_TOKEN not found in .env file"
+        "Hugging Face API token not found. "
+        "Set HF_TOKEN in Vercel Environment Variables."
     )
 
 
-# Hugging Face model
+# Remove accidental spaces/newlines
+HF_TOKEN = HF_TOKEN.strip()
+
+
+# ==========================================
+# HUGGING FACE MODEL
+# ==========================================
+
 llm = HuggingFaceEndpoint(
     repo_id="Qwen/Qwen2.5-7B-Instruct",
     huggingfacehub_api_token=HF_TOKEN,
@@ -29,31 +41,37 @@ llm = HuggingFaceEndpoint(
 )
 
 
-# Convert Hugging Face model into chat model
+# Convert to Chat Model
 model = ChatHuggingFace(
     llm=llm
 )
 
 
-# Tools
+# ==========================================
+# TOOLS
+# ==========================================
+
 tools = [
     currency_converter
 ]
 
 
-# Create LangChain agent
+# ==========================================
+# CREATE AGENT
+# ==========================================
+
 agent = create_agent(
     model=model,
     tools=tools,
     system_prompt="""
 You are an AI currency conversion assistant.
 
-You help users convert currencies.
+You help users with currency-related questions and conversions.
 
 Rules:
 
 1. Always use the currency_converter tool for
-   currency conversion requests.
+   actual currency conversion requests.
 
 2. Never guess or invent exchange rates.
 
@@ -68,11 +86,14 @@ GBP = British Pound
 JPY = Japanese Yen
 CAD = Canadian Dollar
 AUD = Australian Dollar
+CHF = Swiss Franc
+CNY = Chinese Yuan
+SGD = Singapore Dollar
 
 4. If the user gives a currency name instead of
    a currency code, convert it to the correct ISO code.
 
-5. After using the tool, clearly show:
+5. After using the conversion tool, clearly show:
 
 Original amount
 Original currency
@@ -81,19 +102,30 @@ Target currency
 Exchange rate
 Rate date
 
-6. Keep the answer simple and concise.
+6. For simple questions such as:
+   "What is the currency of Japan?"
+   answer directly and concisely.
+
+7. Keep responses simple and concise.
 """
 )
 
 
+# ==========================================
+# ASK AI FUNCTION
+# ==========================================
+
 def ask_currency_agent(user_input: str) -> str:
+
+    if not user_input or not user_input.strip():
+        return "Please enter a question."
 
     response = agent.invoke(
         {
             "messages": [
                 {
                     "role": "user",
-                    "content": user_input
+                    "content": user_input.strip()
                 }
             ]
         }
@@ -102,11 +134,14 @@ def ask_currency_agent(user_input: str) -> str:
     return response["messages"][-1].content
 
 
-# Test the agent
+# ==========================================
+# LOCAL TEST
+# ==========================================
+
 if __name__ == "__main__":
 
     user_input = input(
-        "Enter currency conversion: "
+        "Enter your question: "
     )
 
     result = ask_currency_agent(user_input)
