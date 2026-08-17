@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
+from mangum import Mangum
 
 from tools import currency_converter
 from agents import ask_currency_agent
@@ -243,3 +244,5 @@ def frontend():
     </body>
     </html>
     """
+
+handler = Mangum(app)
