@@ -28,20 +28,18 @@ class AIRequest(BaseModel):
     message: str
 
 
-@app.get("/")
-@app.get("/api")
-@app.get("/api/index")
-@app.get("/api/index/api")
-def home():
+# 1. API Status Check
+@app.get("/api/status")
+def status():
     return {
         "status": "success",
         "message": "AI Currency Converter API is running"
     }
 
 
-@app.post("/convert")
+# 2. Currency Conversion API
 @app.post("/api/convert")
-@app.post("/api/index/api/convert")
+@app.post("/convert")
 def convert_currency(request: ConversionRequest):
     try:
         result = currency_converter.invoke({
@@ -54,9 +52,9 @@ def convert_currency(request: ConversionRequest):
         return {"error": str(e)}
 
 
-@app.post("/ask")
+# 3. AI Agent API
 @app.post("/api/ask")
-@app.post("/api/index/api/ask")
+@app.post("/ask")
 def ask_ai(request: AIRequest):
     try:
         result = ask_currency_agent(request.message)
@@ -65,7 +63,7 @@ def ask_ai(request: AIRequest):
         return {"error": str(e)}
 
 
-@app.get("/ui", response_class=HTMLResponse)
+# 4. Frontend Web UI (Root Route)
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api/index", response_class=HTMLResponse)
 def frontend():
@@ -82,7 +80,7 @@ def frontend():
             .box { background: white; border: 1px solid #ddd; padding: 20px; margin-top: 20px; border-radius: 10px; }
             input, select, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
             button { cursor: pointer; background-color: #0070f3; color: white; border: none; font-weight: bold; }
-            #result, #airesult { margin-top: 15px; padding: 12px; background: #f0f4f8; border-radius: 6px; font-weight: bold; word-break: break-all; }
+            #result, #airesult { margin-top: 15px; padding: 12px; background: #f0f4f8; border-radius: 6px; font-weight: bold; word-break: break-word; }
         </style>
     </head>
     <body>
