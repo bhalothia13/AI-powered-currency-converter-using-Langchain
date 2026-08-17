@@ -32,6 +32,7 @@ class AIRequest(BaseModel):
 
 
 @app.get("/api")
+@app.get("/api/index/api")
 def home():
     return {
         "status": "success",
@@ -62,19 +63,22 @@ def ask_ai(request: AIRequest):
 
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
 def frontend():
     return """
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI Currency Converter</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 700px; margin: 50px auto; padding: 20px; }
+            body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; background: #f9f9f9; color: #333; }
             h1 { text-align: center; }
-            input, select, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; }
-            button { cursor: pointer; font-size: 16px; background-color: #0070f3; color: white; border: none; border-radius: 6px; }
-            .box { border: 1px solid #ddd; padding: 20px; margin-top: 20px; border-radius: 10px; }
-            #result, #airesult { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px; }
+            .box { background: white; border: 1px solid #ddd; padding: 20px; margin-top: 20px; border-radius: 10px; }
+            input, select, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+            button { cursor: pointer; background-color: #0070f3; color: white; border: none; font-weight: bold; }
+            #result, #airesult { margin-top: 15px; padding: 12px; background: #f0f4f8; border-radius: 6px; font-weight: bold; }
         </style>
     </head>
     <body>
@@ -84,24 +88,24 @@ def frontend():
             <h2>Currency Converter</h2>
             <input id="amount" type="number" value="100" min="0.01" placeholder="Amount">
             <select id="from_currency">
-                <option>USD</option><option>EUR</option><option>INR</option>
-                <option>GBP</option><option>JPY</option><option>CAD</option>
-                <option>AUD</option><option>CHF</option><option>CNY</option><option>SGD</option>
+                <option value="USD">USD</option><option value="EUR">EUR</option><option value="INR" selected>INR</option>
+                <option value="GBP">GBP</option><option value="JPY">JPY</option><option value="CAD">CAD</option>
+                <option value="AUD">AUD</option><option value="CHF">CHF</option><option value="CNY">CNY</option><option value="SGD">SGD</option>
             </select>
             <select id="to_currency">
-                <option>INR</option><option>USD</option><option>EUR</option>
-                <option>GBP</option><option>JPY</option><option>CAD</option>
-                <option>AUD</option><option>CHF</option><option>CNY</option><option>SGD</option>
+                <option value="INR">INR</option><option value="USD" selected>USD</option><option value="EUR">EUR</option>
+                <option value="GBP">GBP</option><option value="JPY">JPY</option><option value="CAD">CAD</option>
+                <option value="AUD">AUD</option><option value="CHF">CHF</option><option value="CNY">CNY</option><option value="SGD">SGD</option>
             </select>
             <button onclick="convertCurrency()">🔄 Convert</button>
-            <div id="result"></div>
+            <div id="result">Result will appear here...</div>
         </div>
 
         <div class="box">
             <h2>🤖 Ask AI</h2>
             <input id="question" placeholder="Example: Convert 500 USD to INR">
             <button onclick="askAI()">Ask AI</button>
-            <div id="airesult"></div>
+            <div id="airesult">AI response will appear here...</div>
         </div>
 
         <script>
@@ -126,7 +130,8 @@ def frontend():
 
         async function askAI() {
             const message = document.getElementById("question").value;
-            document.getElementById("airesult").innerText = "AI is processing...";
+            if(!message) return alert("Please enter a question");
+            document.getElementById("airesult").innerText = "AI is thinking...";
 
             try {
                 const response = await fetch("/api/ask", {
