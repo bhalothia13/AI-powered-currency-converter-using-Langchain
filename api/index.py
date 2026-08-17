@@ -28,44 +28,12 @@ class AIRequest(BaseModel):
     message: str
 
 
-# 1. API Status Check
-@app.get("/api/status")
-def status():
-    return {
-        "status": "success",
-        "message": "AI Currency Converter API is running"
-    }
-
-
-# 2. Currency Conversion API
-@app.post("/api/convert")
-@app.post("/convert")
-def convert_currency(request: ConversionRequest):
-    try:
-        result = currency_converter.invoke({
-            "amount": request.amount,
-            "from_currency": request.from_currency,
-            "to_currency": request.to_currency
-        })
-        return {"result": result}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-# 3. AI Agent API
-@app.post("/api/ask")
-@app.post("/ask")
-def ask_ai(request: AIRequest):
-    try:
-        result = ask_currency_agent(request.message)
-        return {"response": result}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-# 4. Frontend Web UI (Root Route)
+# ==========================================
+# 1. FRONTEND WEB UI ROUTE (FIRST PRIORITY)
+# ==========================================
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api/index", response_class=HTMLResponse)
+@app.get("/index", response_class=HTMLResponse)
 def frontend():
     return """
     <!DOCTYPE html>
@@ -151,5 +119,41 @@ def frontend():
     </body>
     </html>
     """
+
+
+# ==========================================
+# 2. BACKEND API ENDPOINTS
+# ==========================================
+@app.post("/api/convert")
+@app.post("/convert")
+def convert_currency(request: ConversionRequest):
+    try:
+        result = currency_converter.invoke({
+            "amount": request.amount,
+            "from_currency": request.from_currency,
+            "to_currency": request.to_currency
+        })
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/ask")
+@app.post("/ask")
+def ask_ai(request: AIRequest):
+    try:
+        result = ask_currency_agent(request.message)
+        return {"response": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "success",
+        "message": "AI Currency Converter API is running"
+    }
+
 
 handler = Mangum(app)
