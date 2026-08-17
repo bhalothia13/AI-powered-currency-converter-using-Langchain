@@ -4,8 +4,7 @@ import sys
 # Root directory ko Python path me add karna
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from mangum import Mangum
 
@@ -18,18 +17,8 @@ except Exception as e:
 app = FastAPI(title="AI Currency Converter")
 
 
-class ConversionRequest(BaseModel):
-    amount: float
-    from_currency: str
-    to_currency: str
-
-
-class AIRequest(BaseModel):
-    message: str
-
-
 # ==========================================
-# 1. FRONTEND WEB UI ROUTE (FIRST PRIORITY)
+# 1. FRONTEND WEB UI ROUTE
 # ==========================================
 @app.get("/", response_class=HTMLResponse)
 @app.get("/api/index", response_class=HTMLResponse)
@@ -122,38 +111,37 @@ def frontend():
 
 
 # ==========================================
-# 2. BACKEND API ENDPOINTS
+# 2. ALL-IN-ONE POST HANDLER FOR VERCEL
 # ==========================================
+@app.post("/")
+@app.post("/api/index")
 @app.post("/api/convert")
 @app.post("/convert")
-def convert_currency(request: ConversionRequest):
-    try:
-        result = currency_converter.invoke({
-            "amount": request.amount,
-            "from_currency": request.from_currency,
-            "to_currency": request.to_currency
-        })
-        return {"result": result}
-    except Exception as e:
-        return {"error": str(e)}
-
-
 @app.post("/api/ask")
 @app.post("/ask")
-def ask_ai(request: AIRequest):
+async def handle_all_post_requests(request: Request):
     try:
-        result = ask_currency_agent(request.message)
-        return {"response": result}
+        data = await request.json()
+
+        # Check if it's a Currency Conversion Request
+        if "amount" in data and "from_currency" in data and "to_currency" in data:
+            result = currency_converter.invoke({
+                "amount": float(data["amount"]),
+                "from_currency": str(data["from_currency"]),
+                "to_currency": str(data["to_currency"])
+            })
+            return {"result": result}
+
+        # Check if it's an AI Agent Request
+        elif "message" in data:
+            result = ask_currency_agent(data["message"])
+            return {"response": result}
+
+        else:
+            return {"error": "Invalid request payload"}
+
     except Exception as e:
         return {"error": str(e)}
-
-
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "success",
-        "message": "AI Currency Converter API is running"
-    }
 
 
 handler = Mangum(app)
