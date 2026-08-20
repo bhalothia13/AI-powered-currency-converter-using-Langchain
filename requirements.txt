@@ -2,8 +2,10 @@ fastapi
 pydantic
 requests
 python-dotenv
+
 langchain
 langchain-core
 langchain-huggingface
 huggingface-hub
+
 mangum
