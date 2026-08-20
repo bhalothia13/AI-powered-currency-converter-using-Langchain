@@ -2,7 +2,6 @@ import os
 
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from tools import currency_converter
 
@@ -32,7 +31,7 @@ HF_TOKEN = HF_TOKEN.strip()
 # ==========================================
 
 client = InferenceClient(
-    provider="hf-inference",
+    provider="nscale",
     api_key=HF_TOKEN,
 )
 
@@ -41,7 +40,7 @@ client = InferenceClient(
 # MODEL
 # ==========================================
 
-MODEL = "HuggingFaceH4/zephyr-7b-beta"
+MODEL = "Qwen/Qwen3-4B-Instruct-2507"
 
 
 # ==========================================
@@ -55,8 +54,8 @@ You help users with currency-related questions and conversions.
 
 Rules:
 
-1. For actual currency conversion requests, use the
-   currency_converter tool.
+1. Always use the currency_converter tool for
+   actual currency conversion requests.
 
 2. Never guess or invent exchange rates.
 
@@ -75,10 +74,10 @@ CHF = Swiss Franc
 CNY = Chinese Yuan
 SGD = Singapore Dollar
 
-4. If the user gives a currency name instead of a code,
-   convert it to the correct ISO code.
+4. If the user gives a currency name instead of
+   a currency code, convert it to the correct ISO code.
 
-5. After a conversion, clearly show:
+5. After using the conversion tool, clearly show:
 
 Original amount
 Original currency
@@ -96,22 +95,7 @@ Rate date
 
 
 # ==========================================
-# TOOL HELPER
-# ==========================================
-
-def run_currency_tool(arguments):
-    """
-    Executes the currency converter tool.
-    """
-
-    try:
-        return currency_converter.invoke(arguments)
-    except AttributeError:
-        return currency_converter(**arguments)
-
-
-# ==========================================
-# ASK AGENT
+# ASK MODEL
 # ==========================================
 
 def ask_currency_agent(user_input: str) -> str:
@@ -131,8 +115,8 @@ def ask_currency_agent(user_input: str) -> str:
     ]
 
     response = client.chat_completion(
-        messages=messages,
         model=MODEL,
+        messages=messages,
         max_tokens=512,
         temperature=0.1,
     )
