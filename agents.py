@@ -1,8 +1,8 @@
 import os
 
 from dotenv import load_dotenv
-from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
-from langchain.agents import create_agent
+from huggingface_hub import InferenceClient
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from tools import currency_converter
 
@@ -21,57 +21,42 @@ HF_TOKEN = (
 if not HF_TOKEN:
     raise ValueError(
         "Hugging Face API token not found. "
-        "Set HF_TOKEN in Vercel Environment Variables."
+        "Set HF_TOKEN in environment variables."
     )
 
-
-# Remove accidental spaces/newlines
 HF_TOKEN = HF_TOKEN.strip()
 
 
 # ==========================================
-# HUGGING FACE MODEL
+# HUGGING FACE CLIENT
 # ==========================================
 
-llm = HuggingFaceEndpoint(
-    repo_id="microsoft/Phi-3.5-mini-instruct",
-    huggingfacehub_api_token=HF_TOKEN,
-    temperature=0.1,
-    max_new_tokens=512,
-)
-
-
-# Convert to Chat Model
-model = ChatHuggingFace(
-    llm=llm
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=HF_TOKEN,
 )
 
 
 # ==========================================
-# TOOLS
+# MODEL
 # ==========================================
 
-tools = [
-    currency_converter
-]
+MODEL = "HuggingFaceH4/zephyr-7b-beta"
 
 
 # ==========================================
-# CREATE AGENT
+# SYSTEM PROMPT
 # ==========================================
 
-agent = create_agent(
-    model=model,
-    tools=tools,
-    system_prompt="""
+SYSTEM_PROMPT = """
 You are an AI currency conversion assistant.
 
 You help users with currency-related questions and conversions.
 
 Rules:
 
-1. Always use the currency_converter tool for
-   actual currency conversion requests.
+1. For actual currency conversion requests, use the
+   currency_converter tool.
 
 2. Never guess or invent exchange rates.
 
@@ -90,10 +75,10 @@ CHF = Swiss Franc
 CNY = Chinese Yuan
 SGD = Singapore Dollar
 
-4. If the user gives a currency name instead of
-   a currency code, convert it to the correct ISO code.
+4. If the user gives a currency name instead of a code,
+   convert it to the correct ISO code.
 
-5. After using the conversion tool, clearly show:
+5. After a conversion, clearly show:
 
 Original amount
 Original currency
@@ -108,11 +93,25 @@ Rate date
 
 7. Keep responses simple and concise.
 """
-)
 
 
 # ==========================================
-# ASK AI FUNCTION
+# TOOL HELPER
+# ==========================================
+
+def run_currency_tool(arguments):
+    """
+    Executes the currency converter tool.
+    """
+
+    try:
+        return currency_converter.invoke(arguments)
+    except AttributeError:
+        return currency_converter(**arguments)
+
+
+# ==========================================
+# ASK AGENT
 # ==========================================
 
 def ask_currency_agent(user_input: str) -> str:
@@ -120,18 +119,25 @@ def ask_currency_agent(user_input: str) -> str:
     if not user_input or not user_input.strip():
         return "Please enter a question."
 
-    response = agent.invoke(
+    messages = [
         {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": user_input.strip()
-                }
-            ]
-        }
+            "role": "system",
+            "content": SYSTEM_PROMPT,
+        },
+        {
+            "role": "user",
+            "content": user_input.strip(),
+        },
+    ]
+
+    response = client.chat_completion(
+        messages=messages,
+        model=MODEL,
+        max_tokens=512,
+        temperature=0.1,
     )
 
-    return response["messages"][-1].content
+    return response.choices[0].message.content
 
 
 # ==========================================
@@ -140,9 +146,7 @@ def ask_currency_agent(user_input: str) -> str:
 
 if __name__ == "__main__":
 
-    user_input = input(
-        "Enter your question: "
-    )
+    user_input = input("Enter your question: ")
 
     result = ask_currency_agent(user_input)
 
