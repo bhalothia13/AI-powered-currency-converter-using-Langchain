@@ -35,6 +35,7 @@ HF_TOKEN = HF_TOKEN.strip()
 
 llm = HuggingFaceEndpoint(
     repo_id="Qwen/Qwen2.5-7B-Instruct",
+    provider="together",
     huggingfacehub_api_token=HF_TOKEN,
     temperature=0.1,
     max_new_tokens=512,
